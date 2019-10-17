@@ -1,2 +1,7 @@
 # code-server-jdk
-Add java support to code-server by https://coder.com
+
+java & py3 debug
+
+```
+docker run -itd 8080:8080 comm/code-server
+```
