@@ -1,10 +1,9 @@
-FROM codercom/code-server:v2
+From codercom/code-server:latest
 
-## auth is of no use in v2
-## docker run -itd -p 8443:8443 -e PASSWORD='yourpassword' -v "${PWD}:/home/coder/project" comm/code-server --allow-http
+ENV CODER_PASSWORD="coder"
 
 # Update to zsh shell
-RUN sudo apt-get install zsh -y
+RUN sudo apt-get update && sudo apt-get install  wget zsh -y
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 
 # Setup python development
@@ -26,6 +25,7 @@ RUN code-server --install-extension eamodio.gitlens
 RUN code-server --install-extension ms-vscode.go
 RUN code-server --install-extension ms-ceintl.vscode-language-pack-zh-hans
 RUN code-server --install-extension vscjava.vscode-java-pack
+RUN code-server --install-extension formulahendry.code-runner
 
 # Other stuff
 USER coder
@@ -35,19 +35,28 @@ RUN echo "source ~/.oh-my-zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zs
 
 USER root
 RUN apt-get update \
-    && apt-get -y install --no-install-recommends apt-utils openjdk-8-jre openjdk-8-jdk maven 2>&1 \
+#can no longer be found in the repositories as Oracle removed support for it earlier this year for those not paying for a commercial license
+    && apt-get -y install --no-install-recommends apt-utils default-jdk maven 2>&1 \
     # Clean up
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-ENV JAVA_HOME  /usr/lib/jvm/java-8-openjdk-amd64
+#ENV JAVA_HOME  /usr/lib/jvm/java-8-openjdk-amd64
+ENV JAVA_HOME  /usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH  $JAVA_HOME/bin:$PATH
 
-
+#add script for auth and init personal settings
+COPY exec /opt
+COPY entrypoint /home/coder
 COPY User /home/coder/.local/share/code-server/User
-RUN chown -R coder:coder /home/coder/.local/share/code-server/User
-RUN chmod o+w /home
+
+RUN     cp /usr/bin/code-server   /usr/local/bin/code-server  \
+    &&  cp /usr/bin/python3  /usr/bin/python  \
+    &&  echo "alias ll='ls -l'" >> /etc/profile  &&  echo "alias ll='ls -l'" >> /home/coder/.bashrc \
+    &&  chown -R coder:coder /home/coder/.local/share/code-server/User && chmod o+w /home
 
 USER coder
-ENTRYPOINT ["dumb-init", "code-server"]
+RUN mkdir -p /home/coder/projects
+ENTRYPOINT ["/home/coder/entrypoint"]
+CMD ["/opt/exec"]
