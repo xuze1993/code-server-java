@@ -58,5 +58,6 @@ RUN     cp /usr/bin/code-server   /usr/local/bin/code-server  \
 
 USER coder
 RUN mkdir -p /home/coder/projects
+EXPOSE 9000
 ENTRYPOINT ["/home/coder/entrypoint"]
 CMD ["/opt/exec"]
